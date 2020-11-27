@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Migrations
 {
     [DbContext(typeof(RecLeagueContext))]
-    partial class RecLeagueContextModelSnapshot : ModelSnapshot
+    [Migration("20201126172909_TempRemovePlayerGameStatusIdFk")]
+    partial class TempRemovePlayerGameStatusIdFk
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -160,8 +162,6 @@ namespace RecLeagueAPI.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("PlayerId");
-
-                    b.HasIndex("GameStatusId");
 
                     b.HasIndex("TeamId");
 
@@ -313,9 +313,6 @@ namespace RecLeagueAPI.Migrations
 
                     b.HasIndex("LeagueId");
 
-                    b.HasIndex("TeamName")
-                        .IsUnique();
-
                     b.ToTable("Team");
                 });
 
@@ -399,17 +396,9 @@ namespace RecLeagueAPI.Migrations
 
             modelBuilder.Entity("RecLeagueAPI.Models.Player", b =>
                 {
-                    b.HasOne("RecLeagueAPI.Models.GameStatus", "GameStatus")
-                        .WithMany()
-                        .HasForeignKey("GameStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("RecLeagueAPI.Models.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId");
-
-                    b.Navigation("GameStatus");
 
                     b.Navigation("Team");
                 });

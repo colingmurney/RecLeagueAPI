@@ -23,6 +23,15 @@ namespace RecLeagueAPI.Models
        
         [ForeignKey("Venue")]
         public int VenueId { get; set; }
+
+        public int? HomeTeamHomeScore { get; set; }
+
+        public int? HomeTeamAwayScore { get; set; }
+
+        public int? AwayTeamHomeScore { get; set; }
+
+        public int? AwayTeamAwayScore { get; set; }
+
         public Venue Venue { get; set; }
         public Team HomeTeam { get; set; }
         public Team AwayTeam { get; set; }

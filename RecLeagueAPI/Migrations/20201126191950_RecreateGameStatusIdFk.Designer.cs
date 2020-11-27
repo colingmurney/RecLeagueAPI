@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Migrations
 {
     [DbContext(typeof(RecLeagueContext))]
-    partial class RecLeagueContextModelSnapshot : ModelSnapshot
+    [Migration("20201126191950_RecreateGameStatusIdFk")]
+    partial class RecreateGameStatusIdFk
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -312,9 +314,6 @@ namespace RecLeagueAPI.Migrations
                     b.HasKey("TeamId");
 
                     b.HasIndex("LeagueId");
-
-                    b.HasIndex("TeamName")
-                        .IsUnique();
 
                     b.ToTable("Team");
                 });

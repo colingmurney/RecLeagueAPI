@@ -13,7 +13,7 @@ namespace RecLeagueAPI.Models
     {
         [Key]
         public int LeagueId { get; set; }
-        
+
         [ForeignKey("Sport")]
         public int SportId { get; set; }
         

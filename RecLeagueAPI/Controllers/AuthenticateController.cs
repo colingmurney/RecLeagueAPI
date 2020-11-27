@@ -14,6 +14,7 @@ using RecLeagueAPI.Models;
 using RecLeagueAPI.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
+using RecLeagueAPI.Models.QueryResults;
 
 namespace RecLeagueAPI.Controllers
 {   
@@ -34,12 +35,11 @@ namespace RecLeagueAPI.Controllers
         [HttpGet]
         public async Task<ActionResult> Authenticate()
         {
-
             //Check access token passed through cookie
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             if (accessToken == null)
                 return Unauthorized();
-            //if not valid, check if user has stay signed in checked in the Player table
+            
             var tokenKey = _config.GetValue<string>("TokenKey");
             var claimType = "email";
             var jwtAuth = new JwtAuthentication();
@@ -52,6 +52,7 @@ namespace RecLeagueAPI.Controllers
 
             if (!jwtAuth.ValidateCurrentToken(accessToken, tokenKey))
             {
+                //if not valid, check if user has stay signed in checked in the Player table
                 if (user.StaySignedIn == false)
                     return Unauthorized("Didnt validate");
             }
@@ -59,12 +60,27 @@ namespace RecLeagueAPI.Controllers
             var tokenString = jwtAuth.createJWT(tokenKey, user.Email);
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
+            var queryResults = new QueryResult();
+            
+            queryResults.Schedule = _context.Schedules.FromSqlRaw("EXECUTE dbo.SelectScheduledGames {0}", user.PlayerId).ToList();
+            queryResults.Results = _context.GameResults.FromSqlRaw("EXECUTE dbo.SelectGameResults {0}", user.PlayerId).ToList();
+            if (user.IsCaptain)
+            {
+                queryResults.PendingCaptainReports = _context.PendingCaptainReports.FromSqlRaw("EXECUTE dbo.PendingCaptainReports {0}", user.PlayerId).ToList();
+            }
+            queryResults.HomeTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.HomeTeamPlayerStatuses {0}", user.PlayerId).ToList();
+            queryResults.AwayTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.AwayTeamPlayerStatuses {0}", user.PlayerId).ToList();
+            queryResults.PlayerGameStatus = _context.PlayerGameStatus.FromSqlRaw("EXECUTE dbo.PlayerGameStatus {0}", user.PlayerId).ToList()[0]; // explicitly take first object in list since it only returns 1 item
+            
+            List<SelectRegionName> regions = _context.RegionNames.FromSqlRaw("SELECT RegionName FROM Region").ToList();
+            queryResults.RegionNames = new List<string>();
+            foreach (SelectRegionName region in regions)
+            {
+                queryResults.RegionNames.Add(region.RegionName);
+            }
 
-            return Ok(user);
 
-            //if not, send unauthorized response
-            //outside if statements make new token and send with ok
-
+            return Ok(queryResults);         
         }
 
         [HttpPost("login")]
@@ -97,7 +113,7 @@ namespace RecLeagueAPI.Controllers
 
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
-            return Ok(user);
+            return Ok();
 
         }
 

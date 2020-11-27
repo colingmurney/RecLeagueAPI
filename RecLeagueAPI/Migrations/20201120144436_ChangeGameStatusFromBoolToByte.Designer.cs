@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Migrations
 {
     [DbContext(typeof(RecLeagueContext))]
-    partial class RecLeagueContextModelSnapshot : ModelSnapshot
+    [Migration("20201120144436_ChangeGameStatusFromBoolToByte")]
+    partial class ChangeGameStatusFromBoolToByte
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -61,35 +63,6 @@ namespace RecLeagueAPI.Migrations
                     b.ToTable("Game");
                 });
 
-            modelBuilder.Entity("RecLeagueAPI.Models.GameStatus", b =>
-                {
-                    b.Property<int>("GameStatusId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .UseIdentityColumn();
-
-                    b.Property<string>("GameStatusName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("GameStatusId");
-
-                    b.ToTable("GameStatus");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.JoinTeamByte", b =>
-                {
-                    b.Property<byte>("Result")
-                        .HasColumnType("tinyint");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.JoinTeamString", b =>
-                {
-                    b.Property<string>("Result")
-                        .HasColumnType("nvarchar(max)");
-                });
-
             modelBuilder.Entity("RecLeagueAPI.Models.League", b =>
                 {
                     b.Property<int>("LeagueId")
@@ -137,8 +110,8 @@ namespace RecLeagueAPI.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("GameStatusId")
-                        .HasColumnType("int");
+                    b.Property<byte>("GameStatus")
+                        .HasColumnType("tinyint");
 
                     b.Property<bool>("IsCaptain")
                         .HasColumnType("bit");
@@ -161,98 +134,9 @@ namespace RecLeagueAPI.Migrations
 
                     b.HasKey("PlayerId");
 
-                    b.HasIndex("GameStatusId");
-
                     b.HasIndex("TeamId");
 
                     b.ToTable("Player");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.GameResult", b =>
-                {
-                    b.Property<string>("Away")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("AwayScore")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Home")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("HomeScore")
-                        .HasColumnType("int");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.PendingCaptainReport", b =>
-                {
-                    b.Property<string>("Away")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Home")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("VenueName")
-                        .HasColumnType("nvarchar(max)");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.PlayerGameStatus", b =>
-                {
-                    b.Property<string>("GameStatusName")
-                        .HasColumnType("nvarchar(max)");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.Schedule", b =>
-                {
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Away")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("City")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Home")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("VenueName")
-                        .HasColumnType("nvarchar(max)");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.SelectRegionName", b =>
-                {
-                    b.Property<string>("RegionName")
-                        .HasColumnType("nvarchar(max)");
-                });
-
-            modelBuilder.Entity("RecLeagueAPI.Models.QueryResults.TeamPlayerStatus", b =>
-                {
-                    b.Property<DateTime>("Date")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("FirstName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("GameStatusName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("PlayerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("TeamName")
-                        .HasColumnType("nvarchar(max)");
                 });
 
             modelBuilder.Entity("RecLeagueAPI.Models.Region", b =>
@@ -312,9 +196,6 @@ namespace RecLeagueAPI.Migrations
                     b.HasKey("TeamId");
 
                     b.HasIndex("LeagueId");
-
-                    b.HasIndex("TeamName")
-                        .IsUnique();
 
                     b.ToTable("Team");
                 });
@@ -399,17 +280,9 @@ namespace RecLeagueAPI.Migrations
 
             modelBuilder.Entity("RecLeagueAPI.Models.Player", b =>
                 {
-                    b.HasOne("RecLeagueAPI.Models.GameStatus", "GameStatus")
-                        .WithMany()
-                        .HasForeignKey("GameStatusId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("RecLeagueAPI.Models.Team", "Team")
                         .WithMany()
                         .HasForeignKey("TeamId");
-
-                    b.Navigation("GameStatus");
 
                     b.Navigation("Team");
                 });

@@ -2,9 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using RecLeagueAPI.Helpers;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Controllers
@@ -14,10 +17,12 @@ namespace RecLeagueAPI.Controllers
     public class PlayersController : ControllerBase
     {
         private readonly RecLeagueContext _context;
+        private readonly IConfiguration _config;
 
-        public PlayersController(RecLeagueContext context)
+        public PlayersController(RecLeagueContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
 
         // GET: api/Players
@@ -44,35 +49,50 @@ namespace RecLeagueAPI.Controllers
         // PUT: api/Players/5
         // To protect from overposting attacks, enable the specific properties you want to bind to, for
         // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutPlayer(int id, Player player)
+        [HttpPut("{status}")]
+        public async Task<IActionResult> ChangePlayerGameStatus(string status)
         {
-            //if (id != player.PlayerId)
-            //{
-            //    return BadRequest();
-            //}
+            //Check if status passed is valid
+            status = status.ToLower();
+            int statusId;
+            if (status == "unknown")
+                statusId = 1;
+            else if (status == "absent")
+                statusId = 2;
+            else if (status == "attending")
+                statusId = 3;
+            else
+                return BadRequest("Incorrect status");
 
-            player.PlayerId = id;
+            //Check access token passed through cookie
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            if (accessToken == null)
+                return Unauthorized();
 
-            _context.Entry(player).State = EntityState.Modified;
+            var tokenKey = _config.GetValue<string>("TokenKey");
+            var claimType = "email";
+            var jwtAuth = new JwtAuthentication();
 
-            try
+            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
+            if (user == null)
+                return Unauthorized("user was null");
+
+            if (!jwtAuth.ValidateCurrentToken(accessToken, tokenKey))
             {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!PlayerExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                return Unauthorized("Didnt validate");
             }
 
-            return NoContent();
+            user.GameStatusId = statusId;
+
+            await _context.SaveChangesAsync();
+
+            //_context.Players.FromSqlRaw($"EXECUTE dbo.UpdatePlayerGameStatus {user.PlayerId}, {status}");
+
+            var tokenString = jwtAuth.createJWT(tokenKey, user.Email);
+            Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
+
+            return Ok();
         }
 
         // POST: api/Players

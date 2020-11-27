@@ -19,6 +19,7 @@ namespace RecLeagueAPI.Models
             Email = email;
             Password = password;
             StaySignedIn = staySignedIn;
+            GameStatusId = 1; //Manually set new player to unknown game status
         }
 
         [Key]
@@ -44,10 +45,10 @@ namespace RecLeagueAPI.Models
         public int? TeamId { get; set; }
 
         public bool IsCaptain { get; set; }
-
-        public bool GameStatus { get; set; }
-
+        [ForeignKey("GameStatus")]
+        public int GameStatusId { get; set; }
         public bool StaySignedIn { get; set; }
         public Team Team { get; set; }
+        public GameStatus GameStatus { get; set; }
     }
 }
