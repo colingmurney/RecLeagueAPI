@@ -1,4 +1,4 @@
-USE RecLeagueV2;
+--USE RecLeagueV2;
 
 --CREATE PROCEDURE SelectScheduledGames @PlayerId int
 --AS
@@ -159,3 +159,21 @@ USE RecLeagueV2;
 --END;
 
 --EXEC dbo.CreateTeam @TeamName = 'Test team3', @RegionName = 'Moncton', @SportName = 'Hockey', @Tier = 1;
+
+
+--CREATE PROCEDURE ResetPlayerGameStatusAndIsArchived
+--AS
+--BEGIN
+--UPDATE Player
+--SET GameStatusId = 1
+--WHERE PlayerId IN (
+--	SELECT distinct PlayerId
+--	FROM Player p, Team t, Game g
+--	WHERE p.TeamId = t.TeamId AND (t.TeamId = g.HomeTeamId OR t.TeamId = g.AwayTeamId) AND g.Date < GETDATE() AND g.IsArchived = 0);
+
+--UPDATE Game
+--SET IsArchived = 1
+--WHERE Date < GETDATE() AND IsArchived = 0;
+--END;
+
+--EXEC dbo.ResetPlayerGameStatusAndIsArchived;

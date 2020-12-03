@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc;
@@ -25,8 +24,8 @@ namespace RecLeagueAPI.Controllers
             _config = config;
         }
 
-        [HttpGet("sports/{region}")]
-        public async Task<ActionResult> SelectAvailableSports(string region)
+        [HttpGet("sports")]
+        public async Task<ActionResult> SelectAvailableSports([FromQuery(Name = "region")] string region)
         {
 
             List<JoinTeamString> sports = await _context.JoinTeamStrings.FromSqlRaw("EXECUTE dbo.SelectAvailableSports {0}", region).ToListAsync();
@@ -40,8 +39,8 @@ namespace RecLeagueAPI.Controllers
             return Ok(sportList);
         }
 
-        [HttpGet("tiers/{region}/{sport}")]
-        public async Task<ActionResult> SelectAvailableTiers(string region, string sport)
+        [HttpGet("tiers")]
+        public async Task<ActionResult> SelectAvailableTiers([FromQuery(Name = "region")] string region, [FromQuery(Name = "sport")] string sport)
         {
             List<JoinTeamByte> tiers = await _context.JoinTeamBytes.FromSqlRaw($"EXECUTE dbo.SelectAvailableTiers @RegionName={region}, @SportName={sport}").ToListAsync();
             var tierList = new List<byte>();
@@ -54,8 +53,8 @@ namespace RecLeagueAPI.Controllers
             return Ok(tierList);
         }
 
-        [HttpGet("teams/{region}/{sport}/{tier}")]
-        public async Task<ActionResult> SelectAvailableTeams(string region, string sport, byte tier)
+        [HttpGet("teams")]
+        public async Task<ActionResult> SelectAvailableTeams([FromQuery(Name = "region")] string region, [FromQuery(Name = "sport")] string sport, [FromQuery(Name = "tier")] byte tier)
         {
             List<JoinTeamString> teams = await _context.JoinTeamStrings.FromSqlRaw($"EXECUTE dbo.SelectAvailableTeams @RegionName={region}, @SportName={sport}, @Tier={tier}").ToListAsync();
             var teamList = new List<string>();
@@ -68,8 +67,8 @@ namespace RecLeagueAPI.Controllers
             return Ok(teamList);
         }
 
-        [HttpPut("update/{teamname}")]
-        public async Task<ActionResult> UpdateTeam(string teamname)
+        [HttpPut("update")]
+        public async Task<ActionResult> UpdateTeam([FromQuery(Name = "teamname")] string teamname)
         {
             //need to validate user and get player details. update their teamId where TeamName = the team passed
             var accessToken = await HttpContext.GetTokenAsync("access_token");
@@ -78,10 +77,9 @@ namespace RecLeagueAPI.Controllers
 
             var tokenKey = _config.GetValue<string>("TokenKey");
             var claimType = "email";
-            var jwtAuth = new JwtAuthentication();
 
             //check if claim == to a player in the database
-            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
             if (user == null)
                 return Unauthorized("user was null");
@@ -106,10 +104,9 @@ namespace RecLeagueAPI.Controllers
 
             var tokenKey = _config.GetValue<string>("TokenKey");
             var claimType = "email";
-            var jwtAuth = new JwtAuthentication();
 
             //check if claim == to a player in the database
-            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
             if (user == null)
                 return Unauthorized("user was null");
@@ -125,7 +122,6 @@ namespace RecLeagueAPI.Controllers
             try
             {
                 newTeam = await _context.Teams.FromSqlRaw("EXECUTE dbo.CreateTeam @TeamName, @RegionName, @SportName, @Tier", parameters: new[] { TeamName, RegionName, SportName, Tier }).ToListAsync();
-            
             }
             catch(Exception e)
             {

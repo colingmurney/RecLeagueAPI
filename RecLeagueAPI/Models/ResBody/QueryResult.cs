@@ -15,5 +15,6 @@ namespace RecLeagueAPI.Models
         public List<TeamPlayerStatus> AwayTeamPlayerStatuses { get; set; }
         public PlayerGameStatus PlayerGameStatus { get; set; }
         public List<string> RegionNames { get; set; }
+
     }
 }

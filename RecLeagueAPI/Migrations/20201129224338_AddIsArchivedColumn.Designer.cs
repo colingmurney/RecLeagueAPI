@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Migrations
 {
     [DbContext(typeof(RecLeagueContext))]
-    partial class RecLeagueContextModelSnapshot : ModelSnapshot
+    [Migration("20201129224338_AddIsArchivedColumn")]
+    partial class AddIsArchivedColumn
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

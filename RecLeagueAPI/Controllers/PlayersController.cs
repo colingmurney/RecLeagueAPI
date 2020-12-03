@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -23,27 +20,6 @@ namespace RecLeagueAPI.Controllers
         {
             _context = context;
             _config = config;
-        }
-
-        // GET: api/Players
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Player>>> GetPlayers()
-        {
-            return await _context.Players.ToListAsync();
-        }
-
-        // GET: api/Players/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Player>> GetPlayer(int id)
-        {
-            var player = await _context.Players.FindAsync(id);
-
-            if (player == null)
-            {
-                return NotFound();
-            }
-
-            return player;
         }
 
         // PUT: api/Players/5
@@ -71,14 +47,13 @@ namespace RecLeagueAPI.Controllers
 
             var tokenKey = _config.GetValue<string>("TokenKey");
             var claimType = "email";
-            var jwtAuth = new JwtAuthentication();
 
-            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
             if (user == null)
                 return Unauthorized("user was null");
 
-            if (!jwtAuth.ValidateCurrentToken(accessToken, tokenKey))
+            if (!JwtAuthentication.ValidateCurrentToken(accessToken, tokenKey))
             {
                 return Unauthorized("Didnt validate");
             }
@@ -89,43 +64,10 @@ namespace RecLeagueAPI.Controllers
 
             //_context.Players.FromSqlRaw($"EXECUTE dbo.UpdatePlayerGameStatus {user.PlayerId}, {status}");
 
-            var tokenString = jwtAuth.createJWT(tokenKey, user.Email);
+            var tokenString = JwtAuthentication.CreateJWT(tokenKey, user.Email);
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
             return Ok();
-        }
-
-        // POST: api/Players
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
-        [HttpPost]
-        public async Task<ActionResult<Player>> PostPlayer(Player player)
-        {
-            _context.Players.Add(player);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetPlayer", new { id = player.PlayerId }, player);
-        }
-
-        // DELETE: api/Players/5
-        [HttpDelete("{id}")]
-        public async Task<ActionResult<Player>> DeletePlayer(int id)
-        {
-            var player = await _context.Players.FindAsync(id);
-            if (player == null)
-            {
-                return NotFound();
-            }
-
-            _context.Players.Remove(player);
-            await _context.SaveChangesAsync();
-
-            return player;
-        }
-
-        private bool PlayerExists(int id)
-        {
-            return _context.Players.Any(e => e.PlayerId == id);
         }
     }
 }

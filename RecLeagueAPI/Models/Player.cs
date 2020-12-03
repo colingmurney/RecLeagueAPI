@@ -12,7 +12,7 @@ namespace RecLeagueAPI.Models
     [Table("Player")]
     public partial class Player
     {
-        public Player(string firstName, string lastName, string email, string password, bool staySignedIn)
+        public Player(string firstName, string lastName, string email, string password, bool staySignedIn, string salt)
         {
             FirstName = firstName;
             LastName = lastName;
@@ -20,6 +20,7 @@ namespace RecLeagueAPI.Models
             Password = password;
             StaySignedIn = staySignedIn;
             GameStatusId = 1; //Manually set new player to unknown game status
+            Salt = salt;
         }
 
         [Key]
@@ -37,9 +38,11 @@ namespace RecLeagueAPI.Models
         [StringLength(50)]
         public string Email { get; set; }
         [Required]
-        
         [StringLength(255)]
         public string Password { get; set; }
+        [Required]
+        [StringLength(50)]
+        public string Salt { get; set; }
         
         [ForeignKey("Team")]
         public int? TeamId { get; set; }

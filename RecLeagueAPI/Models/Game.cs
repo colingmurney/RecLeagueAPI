@@ -29,8 +29,9 @@ namespace RecLeagueAPI.Models
         public int? HomeTeamAwayScore { get; set; }
 
         public int? AwayTeamHomeScore { get; set; }
-
         public int? AwayTeamAwayScore { get; set; }
+        [Required]
+        public bool IsArchived { get; set; }
 
         public Venue Venue { get; set; }
         public Team HomeTeam { get; set; }

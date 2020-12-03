@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI.Migrations
 {
     [DbContext(typeof(RecLeagueContext))]
-    partial class RecLeagueContextModelSnapshot : ModelSnapshot
+    [Migration("20201127205548_MakeSaltRequired")]
+    partial class MakeSaltRequired
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -46,9 +48,6 @@ namespace RecLeagueAPI.Migrations
 
                     b.Property<int>("HomeTeamId")
                         .HasColumnType("int");
-
-                    b.Property<bool>("IsArchived")
-                        .HasColumnType("bit");
 
                     b.Property<int>("VenueId")
                         .HasColumnType("int");

@@ -1,4 +1,5 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using Microsoft.AspNetCore.Cryptography.KeyDerivation;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
@@ -11,7 +12,7 @@ namespace RecLeagueAPI.Helpers
 {
     public class JwtAuthentication
     {
-		public bool ValidateCurrentToken(string token, string secret)
+		public static bool ValidateCurrentToken(string token, string secret)
 		{
 			
 			try
@@ -44,7 +45,7 @@ namespace RecLeagueAPI.Helpers
 			return true;
 		}
 
-		public string GetClaim(string token, string claimType)
+		public static string GetClaim(string token, string claimType)
 		{
 			var tokenHandler = new JwtSecurityTokenHandler();
 			var securityToken = tokenHandler.ReadToken(token) as JwtSecurityToken;
@@ -53,7 +54,7 @@ namespace RecLeagueAPI.Helpers
 			return stringClaimValue;
 		}
 
-		public string createJWT(string tokenKey, string email)
+		public static string CreateJWT(string tokenKey, string email)
         {
 			var tokenHandler = new JwtSecurityTokenHandler();
 			var key = Encoding.ASCII.GetBytes(tokenKey);
@@ -75,6 +76,5 @@ namespace RecLeagueAPI.Helpers
 
 			return tokenHandler.WriteToken(token);
 		}
-
 	}
 }

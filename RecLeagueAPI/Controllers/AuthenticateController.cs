@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
-using System.Security.Claims;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.IdentityModel.Tokens;
 using RecLeagueAPI.Models;
 using RecLeagueAPI.Helpers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using RecLeagueAPI.Models.QueryResults;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.Cryptography.KeyDerivation;
 
 namespace RecLeagueAPI.Controllers
 {   
@@ -42,43 +40,43 @@ namespace RecLeagueAPI.Controllers
             
             var tokenKey = _config.GetValue<string>("TokenKey");
             var claimType = "email";
-            var jwtAuth = new JwtAuthentication();
+            
 
             //check if claim == to a player in the database
-            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
             if (user == null)
                 return Unauthorized("user was null");
 
-            if (!jwtAuth.ValidateCurrentToken(accessToken, tokenKey))
+            if (!JwtAuthentication.ValidateCurrentToken(accessToken, tokenKey))
             {
                 //if not valid, check if user has stay signed in checked in the Player table
                 if (user.StaySignedIn == false)
                     return Unauthorized("Didnt validate");
             }
 
-            var tokenString = jwtAuth.createJWT(tokenKey, user.Email);
+            var tokenString = JwtAuthentication.CreateJWT(tokenKey, user.Email);
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
             var queryResults = new QueryResult();
             
             queryResults.Schedule = _context.Schedules.FromSqlRaw("EXECUTE dbo.SelectScheduledGames {0}", user.PlayerId).ToList();
             queryResults.Results = _context.GameResults.FromSqlRaw("EXECUTE dbo.SelectGameResults {0}", user.PlayerId).ToList();
+            queryResults.HomeTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.HomeTeamPlayerStatuses {0}", user.PlayerId).ToList();
+            queryResults.AwayTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.AwayTeamPlayerStatuses {0}", user.PlayerId).ToList();
+            queryResults.PlayerGameStatus = _context.PlayerGameStatus.FromSqlRaw("EXECUTE dbo.PlayerGameStatus {0}", user.PlayerId).ToList()[0]; // explicitly take first object in list since it only returns 1 item
+            //queryResults.RegionNames = _context.RegionNames.FromSqlRaw("SELECT RegionName FROM Region").ToList();
             if (user.IsCaptain)
             {
                 queryResults.PendingCaptainReports = _context.PendingCaptainReports.FromSqlRaw("EXECUTE dbo.PendingCaptainReports {0}", user.PlayerId).ToList();
             }
-            queryResults.HomeTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.HomeTeamPlayerStatuses {0}", user.PlayerId).ToList();
-            queryResults.AwayTeamPlayerStatuses = _context.TeamPlayerStatuses.FromSqlRaw("EXECUTE dbo.AwayTeamPlayerStatuses {0}", user.PlayerId).ToList();
-            queryResults.PlayerGameStatus = _context.PlayerGameStatus.FromSqlRaw("EXECUTE dbo.PlayerGameStatus {0}", user.PlayerId).ToList()[0]; // explicitly take first object in list since it only returns 1 item
-            
+
             List<SelectRegionName> regions = _context.RegionNames.FromSqlRaw("SELECT RegionName FROM Region").ToList();
             queryResults.RegionNames = new List<string>();
             foreach (SelectRegionName region in regions)
             {
                 queryResults.RegionNames.Add(region.RegionName);
             }
-
 
             return Ok(queryResults);         
         }
@@ -88,17 +86,27 @@ namespace RecLeagueAPI.Controllers
         public async Task<ActionResult> Login(LoginCredentials loginCredentials)
         {
 
+            loginCredentials.Email = loginCredentials.Email.ToLower();
+            ///validatation goes here
+
             if (string.IsNullOrEmpty(loginCredentials.Email) || string.IsNullOrEmpty(loginCredentials.Password))
-                return BadRequest();
+                return BadRequest("email or password is empty");
 
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == loginCredentials.Email);
 
             // check if username exists
             if (user == null)
-                return BadRequest();
+                return BadRequest("user is null");
+
+            //hash password with salt
+           
+            
+            byte[] salt = Convert.FromBase64String(user.Salt);
+            var check = Convert.ToBase64String(salt);
+            var hashed = HashPassword(salt, loginCredentials.Password);
 
             // check if password is correct
-            if (user.Password != loginCredentials.Password)
+            if (hashed != user.Password)
                 return BadRequest();
 
             if (loginCredentials.StaySignedIn)
@@ -108,8 +116,7 @@ namespace RecLeagueAPI.Controllers
             }
             
             var tokenKey = _config.GetValue<string>("TokenKey");
-            var jwtAuth = new JwtAuthentication();
-            var tokenString = jwtAuth.createJWT(tokenKey, user.Email);
+            var tokenString = JwtAuthentication.CreateJWT(tokenKey, user.Email);
 
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
@@ -121,6 +128,10 @@ namespace RecLeagueAPI.Controllers
         [AllowAnonymous]
         public async Task<ActionResult> Create(CreatePlayer player)
         {
+            player.Email = player.Email.ToLower();
+
+            //validation goes here
+
             if (string.IsNullOrEmpty(player.Email) || string.IsNullOrEmpty(player.Password) || string.IsNullOrEmpty(player.FirstName) || string.IsNullOrEmpty(player.LastName))
                 return BadRequest();
 
@@ -133,15 +144,27 @@ namespace RecLeagueAPI.Controllers
             if (user != null)
                 return BadRequest("Player with email already exists.");
 
+            
+            // generate a 128-bit salt using a secure PRNG
+            byte[] salt = new byte[128 / 8];
+            using (var rng = RandomNumberGenerator.Create())
+            {
+                rng.GetBytes(salt);
+            }
+            
+            
+            var hashed = HashPassword(salt, player.Password);
+
+            //use the salt and returned hash to enter the database
+
             //create new Player instance to add to database
-            Player newPlayer = new Player(player.FirstName, player.LastName, player.Email, player.Password, player.StaySignedIn);                
+            Player newPlayer = new Player(player.FirstName, player.LastName, player.Email, hashed, player.StaySignedIn, Convert.ToBase64String(salt));                
 
             _context.Players.Add(newPlayer);
             await _context.SaveChangesAsync();
 
             var tokenKey = _config.GetValue<string>("TokenKey");
-            var jwtAuth = new JwtAuthentication();
-            var tokenString = jwtAuth.createJWT(tokenKey, newPlayer.Email);
+            var tokenString = JwtAuthentication.CreateJWT(tokenKey, newPlayer.Email);
 
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
@@ -153,10 +176,9 @@ namespace RecLeagueAPI.Controllers
         {
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             var claimType = "email";
-            var jwtAuth = new JwtAuthentication();
 
             //check if claim == to a player in the database
-            var claimEmail = jwtAuth.GetClaim(accessToken, claimType);
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
 
            if (user != null)
@@ -167,6 +189,18 @@ namespace RecLeagueAPI.Controllers
                     
             Response.Cookies.Delete("X-Access-Token");
             return Ok();
+        }
+
+        public string HashPassword(byte[] salt, string password)
+        {
+            string hashed = Convert.ToBase64String(KeyDerivation.Pbkdf2(
+            password: password,
+            salt: salt,
+            prf: KeyDerivationPrf.HMACSHA1,
+            iterationCount: 10000,
+            numBytesRequested: 256 / 8));
+
+            return hashed;
         }
     }
 }
