@@ -15,20 +15,21 @@ namespace RecLeagueAPI.Controllers
     {
         private readonly RecLeagueContext _context;
         private readonly IConfiguration _config;
+        private readonly string _tokenKey;
 
         public PlayersController(RecLeagueContext context, IConfiguration config)
         {
             _context = context;
             _config = config;
+            _tokenKey = config.GetValue<string>("TokenKey");
         }
 
-        // PUT: api/Players/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to, for
-        // more details, see https://go.microsoft.com/fwlink/?linkid=2123754.
         [HttpPut("{status}")]
         public async Task<IActionResult> ChangePlayerGameStatus(string status)
         {
-            //Check if status passed is valid
+            // update player game status
+
+            // check if status passed is valid and create corresponding statusId
             status = status.ToLower();
             int statusId;
             if (status == "unknown")
@@ -38,33 +39,29 @@ namespace RecLeagueAPI.Controllers
             else if (status == "attending")
                 statusId = 3;
             else
-                return BadRequest("Incorrect status");
+                return BadRequest("Incorrect status.");
 
-            //Check access token passed through cookie
+            // check if access token was passed
             var accessToken = await HttpContext.GetTokenAsync("access_token");
-            if (accessToken == null)
-                return Unauthorized();
+            if (accessToken == null) return Unauthorized();
 
-            var tokenKey = _config.GetValue<string>("TokenKey");
-            var claimType = "email";
+            // get key from appsettings.json
+            //var tokenKey = _config.GetValue<string>("TokenKey");
 
-            var claimEmail = JwtAuthentication.GetClaim(accessToken, claimType);
+            // check if claim == player in the database
+            var claimEmail = JwtAuthentication.GetClaim(accessToken, JwtAuthentication.claimType);
             Player user = await _context.Players.SingleOrDefaultAsync(x => x.Email == claimEmail);
-            if (user == null)
-                return Unauthorized("user was null");
+            if (user == null) return Unauthorized("Player was not found.");
 
-            if (!JwtAuthentication.ValidateCurrentToken(accessToken, tokenKey))
-            {
-                return Unauthorized("Didnt validate");
-            }
-
+            // check for wrong token key or expired token
+            if (!JwtAuthentication.ValidateCurrentToken(accessToken, _tokenKey)) return Unauthorized("Incorrect access token.");
+            
+            // update player status
             user.GameStatusId = statusId;
-
             await _context.SaveChangesAsync();
 
-            //_context.Players.FromSqlRaw($"EXECUTE dbo.UpdatePlayerGameStatus {user.PlayerId}, {status}");
-
-            var tokenString = JwtAuthentication.CreateJWT(tokenKey, user.Email);
+            // create new jwt and attach to response
+            var tokenString = JwtAuthentication.CreateJWT(_tokenKey, user.Email);
             Response.Cookies.Append("X-Access-Token", tokenString, new CookieOptions() { HttpOnly = true, SameSite = SameSiteMode.Strict });
 
             return Ok();

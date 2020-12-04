@@ -25,7 +25,6 @@ namespace RecLeagueAPI.Models
         public DbSet<JoinTeamString> JoinTeamStrings { get; set; }
         public DbSet<JoinTeamByte> JoinTeamBytes { get; set; }
 
-
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlServer("Data Source=COLIN;Initial Catalog=RecLeagueV2;Integrated Security=True;ConnectRetryCount=0");

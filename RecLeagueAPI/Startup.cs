@@ -1,19 +1,13 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
-using RecLeagueAPI.Helpers;
 using RecLeagueAPI.Models;
 
 namespace RecLeagueAPI
@@ -67,15 +61,6 @@ namespace RecLeagueAPI
                     ValidateAudience = false
                 };
 
-                //x.Events.OnMessageReceived = context =>
-                //{
-                //    if (context.Request.Cookies.ContainsKey("X-Access-Token"))
-                //    {
-                //        context.Token = context.Request.Cookies["X-Access-Token"];
-                //    }
-
-                //    return Task.CompletedTask;
-                //};
                 x.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
@@ -100,7 +85,6 @@ namespace RecLeagueAPI
             app.UseRouting();
 
             app.UseCors(MyAllowSpecificOrigins);
-            //app.UseMiddleware<JwtMiddleware>();
 
             app.UseAuthentication();
             app.UseAuthorization();
